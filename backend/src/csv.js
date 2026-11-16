@@ -10,7 +10,8 @@ function cell(value, { userText = false } = {}) {
 }
 
 const HEADER = [
-  "Position",
+  "#", // row number, 1 = newest (matches the team page)
+  "Position", // waitlist position (order of joining, as shown to the user)
   "Joined at (UTC)",
   "Full name",
   "Email",
@@ -23,9 +24,10 @@ const HEADER = [
 
 export function entriesToCsv(entries) {
   const lines = [HEADER.map((h) => cell(h)).join(",")];
-  for (const e of entries) {
+  entries.forEach((e, index) => {
     lines.push(
       [
+        cell(index + 1),
         cell(e.position),
         cell(e.createdAt.toISOString()),
         cell(e.fullName, { userText: true }),
@@ -37,7 +39,7 @@ export function entriesToCsv(entries) {
         cell(e.whatsappOptIn ? "Yes" : "No"),
       ].join(","),
     );
-  }
+  });
 
   return "﻿" + lines.join("\r\n") + "\r\n";
 }
