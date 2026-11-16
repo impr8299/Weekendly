@@ -1,0 +1,48 @@
+# Run everything with: docker compose up
+# App: http://localhost:8080   Team view: http://localhost:8080/team
+# Every variable has a local default, so no .env file is needed. Override them for a real deployment.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: weekendly
+      POSTGRES_USER: weekendly
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-weekendly}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # exposed so you can browse the data (pgAdmin / psql); 5432 is often taken by a local Postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weekendly -d weekendly"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://weekendly:${DB_PASSWORD:-weekendly}@db:5432/weekendly
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-weekendly-team}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      CORS_ORIGIN: http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  db-data:
+    name: weekendly-db-data
